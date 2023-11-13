@@ -1,0 +1,67 @@
+{% extends './base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+{% block title %}ورود{% endblock %}
+
+{% block content %}
+    <main class="page-content">
+        <div class="container">
+            <div class="auth-wrapper">
+                <div class="auth-form shadow-around">
+                    <div class="site-logo">
+                        <a href="#">
+                            <img src="{% static './img/large_logo_sdata_light.png' %}" alt="logo" style="background-color: #007bff; border-radius: 7px;">
+                        </a>
+                    </div>
+                    <div class="auth-form-title text-center">
+                         S-Form ورود به 
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        {% if error %}
+                            <div class="error pb-3">
+                                <p class="text-danger" dir="rtl">{{ error }}</p>
+                            </div>
+                        {% endif %}
+                        <div class="form-element-row">
+                            <div class="form-element-with-icon">
+                                {{ form.username|add_class:"input-element" }}
+                            </div>
+                        </div>
+                        <div class="form-element-row">
+                            <div class="form-element-with-icon">
+                                {{ form.password|add_class:"input-element" }}
+                            </div>
+                        </div>
+                        <div class="form-element-row">
+                            <label class="container-checkbox">
+                                مرا به خاطر داشته باش
+                                <input type="checkbox" checked="checked">
+                                <span class="checkmark"></span>
+                            </label>
+                        </div>
+                        <div class="form-element-row text-left">
+                            <button class="btn btn-primary">
+                                ورود به اس-فرم 
+                            </button>
+                        </div>
+                    </form>
+                    <div class="auth-form-footer">
+                        <span>کاربر جدید هستید؟</span>
+                        <a href="{% url 'accounts:signup' %}" class="link--with-border-bottom">ثبت نام در اس-فرم</a>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <a  class="btn btn-success col-12 mb-2" href="{% url 'social:begin' 'github' %}">
+                            ورود با استفاده از اکانت گیت هاب
+                        </a>
+                        <br>
+                        <a class="btn btn-success col-12" href="{% url 'social:begin' 'google-oauth2' %}">
+                            ورود با استفاده از اکانت گوگل 
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+{% endblock %}

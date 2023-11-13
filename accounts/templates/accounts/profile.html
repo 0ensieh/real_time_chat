@@ -1,0 +1,30 @@
+{% extends './base.html' %}
+{% block title %}پروفایل{% endblock %}
+
+{% block content %}
+<div class="row-fluid p-5">
+    <div class="col-md-12" dir="rtl">
+        <!-- general form elements -->
+        <div class="card card-primary">
+            <div class="card-header">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                      <li class="breadcrumb-item"><a href="{% url 'chat:home' %}">بازگشت به لیست گفتگوها</a></li>
+                      <li class="breadcrumb-item active" aria-current="page"> پروفایل </li>
+                    </ol>
+                </nav>
+                  
+                  
+                <h3 class="card-title mb-0 text-center">ویرایش پروفایل</h3>
+            </div>
+            <div class='card-body'>
+                <form method='post' enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ form }}
+                    <button class='btn btn-success mt-4'>ویرایش اطلاعات</button>
+                </form>
+            </div>
+        </div>
+    </div>  
+</div>
+{% endblock %}

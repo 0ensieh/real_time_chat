@@ -1,0 +1,204 @@
+{% extends './base.html' %}
+{% block style %}
+  <style>
+    .message {
+      display: flex;
+      margin-bottom: 10px;
+    }
+
+    .message-content {
+      padding: 10px;
+      border-radius: 10px;
+      background-color: #f0f0f0;
+    }
+
+    .self .message-content {
+      align-self: flex-end;
+      background-color: #e2f3ff;
+    }
+
+    .text-left, .text-right {
+        margin-top: auto;
+    }
+    .text-left {
+        margin-bottom: 20px;
+    }
+
+    .online-indicator {
+      font-size: 10px;
+      margin-left: 5px;
+      color: rgb(0, 231, 0);
+    }
+
+    .offline-indicator {
+      font-size: 10px;
+      margin-left: 5px;
+      color: rgb(233, 16, 16);
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <h3>نام گروه: {{ room_name }}</h3>
+
+  <div id="chatMessages" class="card mb-3" style="overflow-y: scroll;height: 75vh;">
+    <div class="card-body" style="overflow-y: auto;">
+      <div class="row" id="chatBox">
+          <!-- Beginning of chat history -->
+          <div class="col-2"></div>
+          <div class="col-8 text-center"><a class="badge text-secondary-emphasis bg-secondary-subtle gray-900">چت شما شروع شد.</a></div>
+          <div class="col-2"></div>
+          <!-- Beginning of chat messages -->
+          {% for message in chat_messages %}
+            <div class="col-4 d-{% if message.sender.username == current_user %}none{%else%}block{% endif %}"></div>
+            <div class="col-8">
+                <div class="message mb-3 {% if message.sender.username == current_user %}self float-end {% else %} float-start {% endif %}">
+                    <div class="message-content">
+                      <small style="font-size: 13px;">{{ message.sender.username }}</small>
+                        {% if request.user != message.sender %}
+                          <span class="{% if message.sender.status.online %}online{% else %}offline{% endif %}-indicator user-{{ message.sender.username }}">
+                        {% endif %}
+                        
+                        {% if request.user != message.sender %}
+                          {% if message.sender.status.online %}Online{% else %}Offline{% endif %}
+                        {% endif %}
+                      </span>
+
+                      <p class="mb-1">{{ message.message }}</p>
+                      <small style="font-size: 11px;">{{ message.get_created_at }}</small>
+                      <small style="font-size: 11px;">
+                        بازدیدها: {% for user in message.seen_by.all %}
+                        {{ user.username }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                      </small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-4 d-{% if message.sender.username == current_user %}block float-start{%else%}none{% endif %}"></div>
+          {% endfor %}
+      </div>
+    </div>
+    <div class="card-footer">
+      <div class="input-group input-group-sm">
+        <div class="input-group-append">
+          <button type="button" id="sendButton" class="btn btn-primary">
+            <i class="fa fa-paper-plane fa-fw"></i>
+            <span class="d-none d-sm-inline">ارسال</span>
+          </button>
+        </div>
+        <input type="text" dir="ltr" class="form-control" id="messageInput" placeholder="... پیام خود را اینجا بنویسید" />
+      </div>
+    </div>
+  </div>
+
+  {{ request.user.username|json_script:"user_username" }}
+  {{ room_name|json_script:"room-name" }}
+  {{ room_slug|json_script:"room-slug" }}
+  <script src="https://cdn.jsdelivr.net/npm/moment-jalaali@latest/dist/moment-jalaali.min.js"></script>
+  <script>
+    
+    // Variables passed through template
+    const roomSlug = JSON.parse(document.getElementById('room-slug').textContent);
+    const roomName = JSON.parse(document.getElementById('room-name').textContent);
+    const user_username = JSON.parse(document.getElementById('user_username').textContent);
+    
+  
+
+    // Function to update online status dynamically
+    function updateStatus(username, online) {
+      const elements = document.getElementsByClassName(`user-${username}`);
+      for (let i = 0; i < elements.length; i++) {
+        const element = elements[i];
+        if (online) {
+          element.classList.remove('offline-indicator');
+          element.classList.add('online-indicator');
+          element.textContent = 'Online';
+        } else {
+          element.classList.remove('online-indicator');
+          element.classList.add('offline-indicator');
+          element.textContent = 'Offline';
+        }
+      }
+    }
+  
+    // Connect WebSocket
+    let chatSocket = null;
+  
+    function connectSocket() {
+      chatSocket = new WebSocket(`ws://${window.location.host}/ws/chat/${roomSlug}/`);
+  
+      // Receive new messages and status updates from WebSocket
+      chatSocket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+  
+        if (data.message) {
+          // Received a new message
+          const message = data.message;
+          const senderClass = data.username === user_username ? 'self' : 'float-start';
+          const onlineStatus = data.online ? 'online' : 'offline';
+          const statusText = data.online ? 'Online' : 'Offline';
+          const timestamp = new Date().toLocaleTimeString("fa-ir", {
+              hour: "numeric",
+              minute: "numeric",
+            });
+  
+          document.getElementById('chatBox').innerHTML += `
+            <div class="col-4 d-${data.username === user_username ? 'none' : 'block'}"></div>
+            <div class="col-8">
+                <div class="message mb-3 ${senderClass}">
+                    <div class="message-content">
+                      <small style="font-size: 13px;">${data.username}</small>
+                      <span class="${onlineStatus}-indicator user-${data.username}">${statusText}</span>
+                      <p class="mb-1">${message}</p>
+                      <small style="font-size: 11px;">${timestamp}</small>    
+                      <small style="font-size: 11px;" id="seenBy-${data.message_id}">
+                        بازدیدها: ${data.seen_by.join(', ')}
+                      </small>            
+                    </div>
+                </div>
+            </div>
+            <div class="col-4 d-${data.username === user_username ? 'block' : 'none'}"></div>
+          `;
+  
+          // Update the user's online status dynamically
+          updateStatus(data.username, data.online);
+        } else if (data.username && data.online !== undefined) {
+          // Received a user status update
+          updateStatus(data.username, data.online);
+        } else if(data.seen_by){
+          // Received a seen_by update for a message
+          const messageId = data.message_id;
+          const seenBy = data.seen_by;
+          const seenByElement = document.getElementById(`seenBy-${messageId}`);
+          if (seenByElement) {
+            seenByElement.textContent = `بازدیدها: ${seenBy.join(', ')}`;
+          }
+        }
+      };
+  
+      chatSocket.onclose = function (e) {
+        console.error('Chat socket closed unexpectedly');
+        // Try to reconnect after 3 seconds
+        setTimeout(connectSocket, 3000);
+      };
+    }
+  
+    // Call connectSocket to establish the WebSocket connection
+    connectSocket();
+  
+    // Send Message to WebSocket
+    const sendButton = document.getElementById('sendButton');
+    const messageInput = document.getElementById('messageInput');
+    sendButton.addEventListener('click', (event) => {
+      const message = messageInput.value.trim();
+      if (message !== '') {
+        chatSocket.send(JSON.stringify({
+          'message': message,
+        }));
+        messageInput.value = '';
+      }
+    });
+  
+   
+  </script>
+   
+{% endblock %}

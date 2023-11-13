@@ -1,0 +1,15 @@
+{
+  "platform": "django",
+  "app": "rexan-reserver",
+
+  "disks": [{
+      "name": "media",
+      "mountTo": "media"
+    },
+
+    {
+      "name": "temp",
+      "mountTo": "/tmp"
+    }
+  ]
+}
